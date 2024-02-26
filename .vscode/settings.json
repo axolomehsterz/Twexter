@@ -1,3 +1,5 @@
 {
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.home": "/Library/Java/JavaVirtualMachines/jdk-20.jdk/Contents/Home",
 }
