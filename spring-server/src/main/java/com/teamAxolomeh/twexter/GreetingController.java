@@ -1,4 +1,4 @@
-package com.example.teamaxolomeh.twexter;
+package com.teamAxolomeh.twexter;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

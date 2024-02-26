@@ -1,7 +1,5 @@
-package com.example.teamaxolomeh.twexter;
+package com.teamAxolomeh.twexter;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -11,7 +9,7 @@ public class ApiController {
   @RequestMapping("/api")
   public String getApi() {
     System.out.println("working");
-    return "Hello api";
+    return "Hello apiiiiiiiiiii";
   }
 
   @RequestMapping("/api2")

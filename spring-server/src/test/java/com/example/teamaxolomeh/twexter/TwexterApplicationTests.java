@@ -1,4 +1,4 @@
-package com.example.teamaxolomeh.twexter;
+package com.teamAxolomeh.twexter;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

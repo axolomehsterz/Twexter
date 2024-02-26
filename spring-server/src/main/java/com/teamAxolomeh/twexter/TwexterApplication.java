@@ -1,4 +1,4 @@
-package com.example.teamaxolomeh.twexter;
+package com.teamAxolomeh.twexter;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
