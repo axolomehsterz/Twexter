@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class DatabaseQueryExecutor {
@@ -20,7 +21,7 @@ public class DatabaseQueryExecutor {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<?> query(String sql, Object[] params) {
+    public List<Map<String, Object>> query(String sql, Object[] params) {
         logger.info("Executed query\n{}", sql);
         if (params != null && params.length > 0) {
             logger.info("with params: {}", (Object) params);
