@@ -7,7 +7,6 @@ function Login() {
       username: username,
       password: password,
     };
-    console.log('butts')
     const response = await fetch("/auth/login", {
       method: "POST",
       headers: {

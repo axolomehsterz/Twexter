@@ -13,8 +13,8 @@ public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
   private Integer id;
-  private String content;
-  private String createdAt;
+  private String username;
+  private String password;
   private String updatedAt;
 
   private User() {
@@ -24,12 +24,8 @@ public class User {
     return this.id;
   }
 
-  public String getContent() {
-    return this.content;
-  }
-
-  public String getCreatedAt() {
-    return this.createdAt;
+  public String getUsername() {
+    return this.username;
   }
 
   public String getUpdatedAt() {
