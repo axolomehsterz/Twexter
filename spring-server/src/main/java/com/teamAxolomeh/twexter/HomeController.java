@@ -1,6 +1,10 @@
 package com.teamAxolomeh.twexter;
 
 import org.springframework.web.bind.annotation.RestController;
+
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -18,9 +22,12 @@ public class HomeController {
   }
 
   @GetMapping("/home")
-  public List<?> someMethod() {
+  public List<?> someMethod(HttpServletRequest request) {
     String sql = "SELECT * FROM users;";
     List<?> results = databaseQueryExecutor.query(sql, null);
+    Claims user = (Claims) request.getAttribute("user");
+    System.out.println(user);
+    System.out.println(user.get("username"));
     return results;
   }
 

@@ -5,6 +5,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import jakarta.servlet.http.Cookie;
 
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -22,17 +24,19 @@ public class IsLoggedInInterceptor implements HandlerInterceptor {
 
   private Environment env;
   private String jwtSecret;
+  private SecretKey key;
 
   @Autowired
   public IsLoggedInInterceptor(Environment env) {
     this.env = env;
     jwtSecret = env.getProperty("SUPER_SECRET", "Uh oh, the secret is missing");
+    key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
   }
 
   public Claims decodeJWT(String jwtToken) {
     return Jwts.parserBuilder()
         // If you want to verify the signature, you must specify the key here
-        .setSigningKey(jwtSecret) // Set the signing key here
+        .setSigningKey(key) // Set the signing key here
         .build()
         .parseClaimsJws(jwtToken)
         .getBody();
@@ -53,7 +57,7 @@ public class IsLoggedInInterceptor implements HandlerInterceptor {
     System.out.println(1111);
     Claims claims = decodeJWT(jwt.getValue());
     System.out.println("done in the interceptor jawn");
-    System.out.println(claims);
+    request.setAttribute("user", claims);
     return true;
   }
 }

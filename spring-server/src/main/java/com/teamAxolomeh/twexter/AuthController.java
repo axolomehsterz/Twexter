@@ -18,8 +18,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.impl.DefaultClaims;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,14 +47,16 @@ public class AuthController {
     this.databaseQueryExecutor = databaseQueryExecutor;
   }
 
-  private String generateToken(String username) {
+  private String generateToken(Map<String, Object> map) {
+    Claims claims = new DefaultClaims();
+    map.forEach(claims::put);
     Date now = new Date();
     Date expiryDate = new Date(now.getTime() + 3600000); // 1 hour expiration
     System.out.println("The secret is:");
     System.out.println(this.jwtSecret);
     SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     return Jwts.builder()
-        .setSubject(username)
+        .setClaims(claims)
         .setIssuedAt(now)
         .setExpiration(expiryDate)
         .signWith(key, SignatureAlgorithm.HS256)
@@ -77,7 +82,8 @@ public class AuthController {
             .status(HttpStatus.UNAUTHORIZED)
             .body("Invalid username or password");
       }
-      final String token = generateToken(data.getUsername());
+
+      final String token = generateToken(results.get(0));
       CookieSetter.setCookie(res, "ssid", token);
       return ResponseEntity.ok("You are now logged in as:  " + data.getUsername());
     } catch (Exception e) {
