@@ -5,7 +5,9 @@ const path = require("path");
 const devMode = process.env.NODE_ENV === "production";
 const styleLoader = devMode ? MiniCssExtractPlugin.loader : "style-loader";
 
-const BACKEND = "spring-boot" || "express";
+// Switch these to switch between servers. Then run "npm run build"
+const BACKEND = "spring-boot";
+// const BACKEND = "express";
 
 const config = {
   // JS that gets run in index.html

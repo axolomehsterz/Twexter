@@ -54,10 +54,8 @@ public class TwextController {
   @GetMapping
   public ResponseEntity<GetTwextaResponse> getAllTwexts(HttpServletRequest req, HttpServletResponse res) {
     try {
-      Claims user = (Claims) req.getAttribute("user");
-      final String query = "SELECT u.*, t.content FROM users u JOIN twexta t ON t.user_id=?;";
-      Object[] params = new Object[] { user.get("_id") };
-      List<Map<String, Object>> results = databaseQueryExecutor.query(query, params);
+      final String query = "SELECT u.*, t.content FROM users u JOIN twexta t ON t.user_id=u._id;";
+      List<Map<String, Object>> results = databaseQueryExecutor.query(query, null);
       GetTwextaResponse response = new GetTwextaResponse(results);
       return ResponseEntity.ok().body(response);
     } catch (Exception e) {
