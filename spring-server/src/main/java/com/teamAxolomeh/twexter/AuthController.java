@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,9 +63,10 @@ public class AuthController {
         .signWith(key, SignatureAlgorithm.HS256)
         .compact();
   }
-
+  
+  @CrossOrigin
   @PostMapping("/login")
-  public ResponseEntity<?> login(HttpServletResponse res, @RequestBody LoginDto data) {
+  public ResponseEntity<String> login(HttpServletResponse res, @RequestBody LoginDto data) {
     try {
       final String query = "SELECT * FROM users WHERE username = ?";
       final Object[] params = new Object[] { data.getUsername() };
@@ -85,7 +87,10 @@ public class AuthController {
 
       final String token = generateToken(results.get(0));
       CookieSetter.setCookie(res, "ssid", token);
-      return ResponseEntity.ok("You are now logged in as:  " + data.getUsername());
+      res.sendRedirect("redirect:/feed?user=" + data.getUsername());
+      return ResponseEntity
+        .status(HttpStatus.OK)
+        .body("You are now logged in");
     } catch (Exception e) {
       logger.info("Error!");
       logger.error(e.getLocalizedMessage());
