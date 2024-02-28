@@ -63,7 +63,7 @@ public class AuthController {
         .signWith(key, SignatureAlgorithm.HS256)
         .compact();
   }
-  
+
   @CrossOrigin
   @PostMapping("/login")
   public ResponseEntity<String> login(HttpServletResponse res, @RequestBody LoginDto data) {
@@ -87,10 +87,12 @@ public class AuthController {
 
       final String token = generateToken(results.get(0));
       CookieSetter.setCookie(res, "ssid", token);
-      res.sendRedirect("redirect:/feed?user=" + data.getUsername());
-      return ResponseEntity
-        .status(HttpStatus.OK)
-        .body("You are now logged in");
+      System.out.println("hey");
+      System.out.println(data.getUsername());
+      final String responseJson = "{\"username\": \"" + data.getUsername() + "\"}";
+      System.out.println(responseJson);
+      return ResponseEntity.ok().body(responseJson);
+
     } catch (Exception e) {
       logger.info("Error!");
       logger.error(e.getLocalizedMessage());
