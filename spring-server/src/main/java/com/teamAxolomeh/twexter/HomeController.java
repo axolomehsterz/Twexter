@@ -26,8 +26,6 @@ public class HomeController {
     String sql = "SELECT * FROM users;";
     List<?> results = databaseQueryExecutor.query(sql, null);
     Claims user = (Claims) request.getAttribute("user");
-    System.out.println(user);
-    System.out.println(user.get("username"));
     return results;
   }
 

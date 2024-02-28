@@ -14,10 +14,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 
 @Component
 public class IsLoggedInInterceptor implements HandlerInterceptor {
@@ -44,19 +41,12 @@ public class IsLoggedInInterceptor implements HandlerInterceptor {
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-    System.out.println("running the interceptor jawn");
     request.getCookies();
-    System.out.println(1);
     Cookie jwt = CookieUtils.getCookie(request, "ssid");
-    System.out.println(11);
     if (jwt == null) {
       return false;
     }
-    System.out.println(111);
-    System.out.println(jwt.getValue());
-    System.out.println(1111);
     Claims claims = decodeJWT(jwt.getValue());
-    System.out.println("done in the interceptor jawn");
     request.setAttribute("user", claims);
     return true;
   }

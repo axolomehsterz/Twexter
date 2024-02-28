@@ -12,12 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.jsonwebtoken.Claims;
@@ -25,11 +23,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.DefaultClaims;
 import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Date;
 
 @RestController
@@ -53,8 +49,6 @@ public class AuthController {
     map.forEach(claims::put);
     Date now = new Date();
     Date expiryDate = new Date(now.getTime() + 3600000); // 1 hour expiration
-    System.out.println("The secret is:");
-    System.out.println(this.jwtSecret);
     SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     return Jwts.builder()
         .setClaims(claims)
@@ -64,7 +58,6 @@ public class AuthController {
         .compact();
   }
 
-  @CrossOrigin
   @PostMapping("/login")
   public ResponseEntity<String> login(HttpServletResponse res, @RequestBody LoginDto data) {
     try {
@@ -87,10 +80,7 @@ public class AuthController {
 
       final String token = generateToken(results.get(0));
       CookieSetter.setCookie(res, "ssid", token);
-      System.out.println("hey");
-      System.out.println(data.getUsername());
       final String responseJson = "{\"username\": \"" + data.getUsername() + "\"}";
-      System.out.println(responseJson);
       return ResponseEntity.ok().body(responseJson);
 
     } catch (Exception e) {
@@ -101,11 +91,11 @@ public class AuthController {
   }
 
   @PostMapping("/register")
-  public ResponseEntity<?> register(@RequestBody LoginDto data) {
+  public ResponseEntity<String> register(@RequestBody LoginDto data) {
     try {
       String query = "SELECT * FROM users WHERE username = ?";
       Object[] params = new Object[] { data.getUsername() };
-      List<?> results = databaseQueryExecutor.query(query, params);
+      List<Map<String, Object>> results = databaseQueryExecutor.query(query, params);
       if (results.size() != 0) {
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
