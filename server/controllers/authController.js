@@ -41,7 +41,7 @@ authController.getGithubUsername = async (req, res, next) => {
   mwareBanner("getGithubUsername");
 
   const { token } = res.locals;
-
+  console.log("Bearer " + token.split("&")[0].split("=")[1]);
   try {
     const fromGithub = await fetch("https://api.github.com/user", {
       type: "POST",
