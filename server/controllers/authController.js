@@ -52,6 +52,9 @@ authController.getGithubUsername = async (req, res, next) => {
 
     const githubUser = await fromGithub.json();
     console.log("Found user: " + githubUser);
+    for (let key in githubUser) {
+      console.log(key, githubUser[key]);
+    }
 
     // res.cookie('twexter', githubUser.login, { httpOnly: true });
     res.locals.username = githubUser.login;

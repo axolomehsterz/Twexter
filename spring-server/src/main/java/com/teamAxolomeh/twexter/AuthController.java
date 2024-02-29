@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -51,21 +52,21 @@ public class AuthController {
 
   public static class GitHubResponse {
 
-    @JsonProperty("username")
-    private String username;
+    @JsonProperty("login")
+    private String login;
 
-    @JsonProperty("email")
-    private String email;
+    // @JsonProperty("email")
+    // private String email;
 
     // No-argument constructor
     public GitHubResponse() {
     }
 
     // Getters and setters
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getLogin() { return login; }
+    public void setLogin(String login) { this.login = login; }
+    // public String getEmail() { return email; }
+    // public void setEmail(String email) { this.email = email; }
 }
 
 
@@ -100,7 +101,7 @@ public class AuthController {
   }
 
   @GetMapping("/callback")
-  public String githubCallback(@RequestParam Map<String, String> params) {
+  public RedirectView githubCallback(@RequestParam Map<String, String> params, HttpServletResponse res) {
     try {
 
       class Body {
@@ -120,9 +121,6 @@ public class AuthController {
         private String code;
       }
 
-
-      
-
       Body body = new Body(githubClientId, githubClientSecret, params.get("code"));
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
@@ -131,10 +129,6 @@ public class AuthController {
       RestTemplate restTemplate = new RestTemplate();
       Map<String, String> token = restTemplate.postForObject(url, request, Map.class);
       String headerValue = "Bearer " + token.get("access_token");
-
-      // token: Bearer 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
-      //        Bearer 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
-
       // Get github username
       // String splitTokenValue = tokenValue.split("&")[0].split("=")[1];
       headers = new HttpHeaders();
@@ -147,15 +141,28 @@ public class AuthController {
         request,
         GitHubResponse.class
       );
-        // url, request, GitHubResponse.class);
-      System.out.println("email: " + response.getBody().getEmail());
-    // Redirect to /feed?user= + {username}
-      return "I won!";
+      String username = response.getBody().getLogin();
+      // Find or create user
+    
+      final String queryFind = "SELECT users.* FROM users WHERE users.username = ?;";
+      final Object[] paramsFind = new Object[] { username };
+      List<Map<String, Object>> results = databaseQueryExecutor.query(queryFind, paramsFind);
+      // Create a user if they don't exist
+      if (results.size() == 0) {
+        final String queryCreate = "INSERT INTO users (username) VALUES (?) RETURNING *;";
+        final Object[] paramsCreate = new Object[] { username };
+        results = databaseQueryExecutor.query(queryCreate, paramsCreate);
+      }
+      final String redirectUrl = "/feed?user=" + username;
+      final String jwt = generateToken(results.get(0));
+      CookieSetter.setCookie(res, "ssid", jwt);
+      return new RedirectView(redirectUrl);
     } catch (Exception e) {
       // TODO: handle exception
       logger.info("Error!");
       logger.error(e.getLocalizedMessage());
-      return e.getMessage();
+      final String redirectUrl = "login";
+      return new RedirectView(redirectUrl);
     }
   }
 
