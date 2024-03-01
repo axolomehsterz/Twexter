@@ -5,12 +5,14 @@ import javax.crypto.SecretKey;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +33,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.DefaultClaims;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletResponse;
+
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
@@ -47,8 +51,8 @@ public class AuthController {
   private String googleClientSecret;
   private String googleClientId;
 
-  public AuthController(DatabaseQueryExecutor databaseQueryExecutor, Environment env) {
-    this.env = env;
+  public AuthController(DatabaseQueryExecutor databaseQueryExecutor, Environment environment) {
+    this.env = environment;
     jwtSecret = env.getRequiredProperty("SUPER_SECRET");
     githubClientId = env.getRequiredProperty("GITHUB_CLIENT_ID");
     githubClientSecret = env.getRequiredProperty("GITHUB_CLIENT_SECRET");
@@ -105,15 +109,34 @@ public class AuthController {
       map.add("redirect_uri", "http://localhost:8080/auth/google/callback");
       map.add("grant_type", "authorization_code");
       HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
-      ResponseEntity<Map> response = restTemplate.postForEntity("https://oauth2.googleapis.com/token", request,
-          Map.class);
+      ParameterizedTypeReference<Map<String, Object>> responseType = new ParameterizedTypeReference<Map<String, Object>>() {
+      };
+      MultiValueMap<String, String> requestBody = request.getBody();
+      if (requestBody == null) {
+        throw new IllegalArgumentException("Request body can not be null");
+      }
+      RequestEntity<?> requestEntity = RequestEntity
+          .post(new URI("https://oauth2.googleapis.com/token"))
+          .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+          .body(requestBody);
+      ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+          "https://oauth2.googleapis.com/token",
+          HttpMethod.POST,
+          requestEntity,
+          responseType);
       Map<String, Object> responseBody = response.getBody();
       // Extract access token from response
+      if (responseBody == null) {
+        throw new IllegalArgumentException("Response body can not be null");
+      }
       String accessToken = (String) responseBody.get("access_token");
       // Use access token to call Google People API
       String userInfoUri = "https://people.googleapis.com/v1/people/me?personFields=emailAddresses&access_token="
           + accessToken;
       EmailResponse emailResponse = restTemplate.getForObject(userInfoUri, EmailResponse.class);
+      if (emailResponse == null) {
+        throw new IllegalArgumentException("Email Response can not be null");
+      }
       String username = emailResponse.getEmailAddresses().get(0).getValue();
       // Find or create with email
       List<Map<String, Object>> results = findOrCreateUser(username);
@@ -161,17 +184,21 @@ public class AuthController {
         @JsonProperty("code")
         private String code;
       }
-
       Body body = new Body(githubClientId, githubClientSecret, params.get("code"));
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
       HttpEntity<Body> request = new HttpEntity<>(body, headers);
       String url = "https://github.com/login/oauth/access_token";
       RestTemplate restTemplate = new RestTemplate();
-      Map<String, String> token = restTemplate.postForObject(url, request, Map.class);
+      ParameterizedTypeReference<Map<String, String>> typeRef = new ParameterizedTypeReference<Map<String, String>>() {
+      };
+      ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request,
+          typeRef);
+      Map<String, String> token = responseEntity.getBody();
+      if (token == null) {
+        throw new IllegalArgumentException("Token can not be null");
+      }
       String headerValue = "Bearer " + token.get("access_token");
-      // Get github username
-      // String splitTokenValue = tokenValue.split("&")[0].split("=")[1];
       headers = new HttpHeaders();
       headers.set("Authorization", headerValue);
       url = "https://api.github.com/user";
@@ -181,7 +208,11 @@ public class AuthController {
           HttpMethod.GET,
           request,
           GitHubResponse.class);
-      String username = response.getBody().getLogin();
+      GitHubResponse responseBody = response.getBody();
+      if (responseBody == null) {
+        throw new IllegalArgumentException("response body can not be null");
+      }
+      String username = responseBody.getLogin();
       // Find or create user
       List<Map<String, Object>> results = findOrCreateUser(username);
       final String redirectUrl = "/feed?user=" + username;

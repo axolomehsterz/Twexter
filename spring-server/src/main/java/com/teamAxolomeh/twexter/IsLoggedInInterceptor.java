@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Cookie;
 import javax.crypto.SecretKey;
 import org.springframework.core.env.Environment;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import io.jsonwebtoken.Claims;
@@ -18,8 +19,8 @@ public class IsLoggedInInterceptor implements HandlerInterceptor {
   private String jwtSecret;
   private SecretKey key;
 
-  public IsLoggedInInterceptor(Environment env) {
-    this.env = env;
+  public IsLoggedInInterceptor(Environment environment) {
+    env = environment;
     jwtSecret = env.getProperty("SUPER_SECRET", "Uh oh, the secret is missing");
     key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
   }
@@ -34,7 +35,8 @@ public class IsLoggedInInterceptor implements HandlerInterceptor {
   }
 
   @Override
-  public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+  public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+      @NonNull Object handler) throws Exception {
     request.getCookies();
     Cookie jwt = CookieUtils.getCookie(request, "ssid");
     if (jwt == null) {

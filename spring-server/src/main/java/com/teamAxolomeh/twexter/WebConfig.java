@@ -2,6 +2,7 @@ package com.teamAxolomeh.twexter;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -16,8 +17,10 @@ public class WebConfig implements WebMvcConfigurer {
   }
 
   @Override
-  public void addInterceptors(InterceptorRegistry registry) {
-    registry.addInterceptor(isLoggedInInterceptor)
-        .addPathPatterns("/twext");
+  public void addInterceptors(@NonNull InterceptorRegistry registry) {
+    if (isLoggedInInterceptor != null) {
+      registry.addInterceptor(isLoggedInInterceptor)
+          .addPathPatterns("/twext");
+    } 
   }
 }
