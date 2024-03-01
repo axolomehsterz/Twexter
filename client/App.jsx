@@ -15,7 +15,6 @@ function App() {
 
   useEffect(() => {
     async function getData() {
-      console.log('something')
       const result = await fetch("/api");
       const text = await result.text();
       setUser(searchParams.get("user"));
