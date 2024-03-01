@@ -8,6 +8,7 @@
     "start": "webpack . & webpack-dev-server . & nodemon server/server.js",
     "build": "webpack .",
     "server": "nodemon server/server.js",
+    "spring-start": "cd spring-server && ./gradlew bootRun --warning-mode all",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "repository": {
