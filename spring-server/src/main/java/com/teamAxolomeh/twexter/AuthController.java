@@ -1,14 +1,10 @@
 package com.teamAxolomeh.twexter;
 
 import java.util.Map;
-
 import javax.crypto.SecretKey;
-
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -26,16 +22,15 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.DefaultClaims;
 import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
@@ -49,34 +44,16 @@ public class AuthController {
   private String jwtSecret;
   private String githubClientId;
   private String githubClientSecret;
+  private String googleClientSecret;
+  private String googleClientId;
 
-  public static class GitHubResponse {
-
-    @JsonProperty("login")
-    private String login;
-
-    // @JsonProperty("email")
-    // private String email;
-
-    // No-argument constructor
-    public GitHubResponse() {
-    }
-
-    // Getters and setters
-    public String getLogin() { return login; }
-    public void setLogin(String login) { this.login = login; }
-    // public String getEmail() { return email; }
-    // public void setEmail(String email) { this.email = email; }
-}
-
-
-  @Autowired
   public AuthController(DatabaseQueryExecutor databaseQueryExecutor, Environment env) {
     this.env = env;
-    jwtSecret = env.getProperty("SUPER_SECRET", "Uh oh, the secret is missing");
-    githubClientId = env.getProperty("GITHUB_CLIENT_ID", "Missing github client id");
-    githubClientSecret = env.getProperty("GITHUB_CLIENT_SECRET", "Missing github secret");
-
+    jwtSecret = env.getRequiredProperty("SUPER_SECRET");
+    githubClientId = env.getRequiredProperty("GITHUB_CLIENT_ID");
+    githubClientSecret = env.getRequiredProperty("GITHUB_CLIENT_SECRET");
+    googleClientId = env.getRequiredProperty("GOOGLE_CLIENT_ID");
+    googleClientSecret = env.getRequiredProperty("GOOGLE_CLIENT_SECRET");
     this.databaseQueryExecutor = databaseQueryExecutor;
   }
 
@@ -100,10 +77,74 @@ public class AuthController {
     return new ModelAndView("redirect:" + redirectUrl);
   }
 
+  @GetMapping("/google")
+  public ModelAndView redirectToGoogleLogin() {
+    final String redirectUrl = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount" +
+        "?response_type=code" +
+        "&redirect_uri=" +
+        "http://localhost:8080/auth/google/callback" +
+        "&scope=email%20profile&" +
+        "client_id=" +
+        googleClientId +
+        "&service=lso&o2v=2" +
+        "&theme=glif" +
+        "&flowName=GeneralOAuthFlow";
+    return new ModelAndView("redirect:" + redirectUrl);
+  }
+
+  @GetMapping("/google/callback")
+  public RedirectView googleCallback(@RequestParam String code, HttpServletResponse res) {
+    try {
+      RestTemplate restTemplate = new RestTemplate();
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+      MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+      map.add("code", code);
+      map.add("client_id", googleClientId);
+      map.add("client_secret", googleClientSecret);
+      map.add("redirect_uri", "http://localhost:8080/auth/google/callback");
+      map.add("grant_type", "authorization_code");
+      HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+      ResponseEntity<Map> response = restTemplate.postForEntity("https://oauth2.googleapis.com/token", request,
+          Map.class);
+      Map<String, Object> responseBody = response.getBody();
+      // Extract access token from response
+      String accessToken = (String) responseBody.get("access_token");
+      // Use access token to call Google People API
+      String userInfoUri = "https://people.googleapis.com/v1/people/me?personFields=emailAddresses&access_token="
+          + accessToken;
+      EmailResponse emailResponse = restTemplate.getForObject(userInfoUri, EmailResponse.class);
+      String username = emailResponse.getEmailAddresses().get(0).getValue();
+      // Find or create with email
+      List<Map<String, Object>> results = findOrCreateUser(username);
+      final String redirectUrl = "/feed?user=" + username;
+      final String jwt = generateToken(results.get(0));
+      CookieSetter.setCookie(res, "ssid", jwt);
+      return new RedirectView(redirectUrl);
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      final String redirectUrl = "login";
+      return new RedirectView(redirectUrl);
+    }
+  }
+
+  // Returns the user
+  private List<Map<String, Object>> findOrCreateUser(String username) {
+    final String queryFind = "SELECT users.* FROM users WHERE users.username = ?;";
+    final Object[] paramsFind = new Object[] { username };
+    List<Map<String, Object>> results = databaseQueryExecutor.query(queryFind, paramsFind);
+    // Create a user if they don't exist
+    if (results.size() == 0) {
+      final String queryCreate = "INSERT INTO users (username) VALUES (?) RETURNING *;";
+      final Object[] paramsCreate = new Object[] { username };
+      results = databaseQueryExecutor.query(queryCreate, paramsCreate);
+    }
+    return results;
+  }
+
   @GetMapping("/callback")
   public RedirectView githubCallback(@RequestParam Map<String, String> params, HttpServletResponse res) {
     try {
-
       class Body {
         public Body(String client_id, String client_secret, String code) {
           this.client_id = client_id;
@@ -136,29 +177,18 @@ public class AuthController {
       url = "https://api.github.com/user";
       request = new HttpEntity<>(headers);
       ResponseEntity<GitHubResponse> response = restTemplate.exchange(
-        url,
-        HttpMethod.GET,
-        request,
-        GitHubResponse.class
-      );
+          url,
+          HttpMethod.GET,
+          request,
+          GitHubResponse.class);
       String username = response.getBody().getLogin();
       // Find or create user
-    
-      final String queryFind = "SELECT users.* FROM users WHERE users.username = ?;";
-      final Object[] paramsFind = new Object[] { username };
-      List<Map<String, Object>> results = databaseQueryExecutor.query(queryFind, paramsFind);
-      // Create a user if they don't exist
-      if (results.size() == 0) {
-        final String queryCreate = "INSERT INTO users (username) VALUES (?) RETURNING *;";
-        final Object[] paramsCreate = new Object[] { username };
-        results = databaseQueryExecutor.query(queryCreate, paramsCreate);
-      }
+      List<Map<String, Object>> results = findOrCreateUser(username);
       final String redirectUrl = "/feed?user=" + username;
       final String jwt = generateToken(results.get(0));
       CookieSetter.setCookie(res, "ssid", jwt);
       return new RedirectView(redirectUrl);
     } catch (Exception e) {
-      // TODO: handle exception
       logger.info("Error!");
       logger.error(e.getLocalizedMessage());
       final String redirectUrl = "login";
@@ -190,7 +220,6 @@ public class AuthController {
       CookieSetter.setCookie(res, "ssid", token);
       final String responseJson = "{\"username\": \"" + data.getUsername() + "\"}";
       return ResponseEntity.ok().body(responseJson);
-
     } catch (Exception e) {
       logger.info("Error!");
       logger.error(e.getLocalizedMessage());

@@ -2,4 +2,8 @@
   "java.configuration.updateBuildConfiguration": "interactive",
   "java.compile.nullAnalysis.mode": "automatic",
   "java.jdt.ls.java.home": "/library/java/javavirtualmachines/temurin-21.jdk/contents/home",
+  "cSpell.words": [
+    "Servlet",
+    "twexter"
+  ],
 }

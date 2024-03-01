@@ -11,7 +11,6 @@ public class WebConfig implements WebMvcConfigurer {
   @Autowired
   private IsLoggedInInterceptor isLoggedInInterceptor;
 
-  @Autowired
   public WebConfig(IsLoggedInInterceptor isLoggedInInterceptor) {
     this.isLoggedInInterceptor = isLoggedInInterceptor;
   }

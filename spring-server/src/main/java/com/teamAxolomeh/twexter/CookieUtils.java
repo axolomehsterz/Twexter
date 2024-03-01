@@ -4,7 +4,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class CookieUtils {
-
   public static Cookie getCookie(HttpServletRequest request, String name) {
     Cookie[] cookies = request.getCookies();
     if (cookies != null) {
@@ -14,6 +13,6 @@ public class CookieUtils {
         }
       }
     }
-    return null; // Cookie not found
+    return null;
   }
 }
